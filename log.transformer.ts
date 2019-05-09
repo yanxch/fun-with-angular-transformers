@@ -17,19 +17,18 @@ export const logTransformer = <T extends ts.Node>(context: ts.TransformationCont
         // console.log('TEXT: ' + node.expression.name.text);
         if(node.expression.name.text === 'subscribe') {
           console.log('FOUND SUBSCRIPTION!!!! ' + node.expression.name.getText());
-          
-          /*return ts.createCall(
+
+          return ts.createCall(
             ts.createPropertyAccess(
               ts.createPropertyAccess(ts.createThis(), 'subscriptions'),
               'push'
             ),
             undefined,
             [node]
-          );*/
-          return node;
-
+          );
         }
-        
+
+        return node;
       }
 
       
@@ -42,8 +41,8 @@ export const logTransformer = <T extends ts.Node>(context: ts.TransformationCont
           if (node.decorators[0].getFullText().trim().startsWith('@Component')) {
             console.log('Found COMPONENT');
 
-            
-            //
+
+            // creates:
             // this.subscriptions = [];
             const propertyDeclaration = ts.createProperty(
               undefined, 
@@ -53,10 +52,12 @@ export const logTransformer = <T extends ts.Node>(context: ts.TransformationCont
               undefined, 
               ts.createArrayLiteral()
             );
-            node.members = [...node.members] as any;
+            const newMembers = ts.createNodeArray([...node.members, propertyDeclaration]);
+            
+            node.members = newMembers;
 
             
-            //
+            // creates:
             // this.subscriptions.forEach(function (sub) { return sub.unsubscribe(); });
             node.members.map(member => {
               if (ts.isMethodDeclaration(member) && member.name.getText() === 'ngOnDestroy') {
@@ -91,7 +92,7 @@ export const logTransformer = <T extends ts.Node>(context: ts.TransformationCont
                   )
                 ] as any;
 
-                // wenn ngOnDestroy nicht vorhanden ist
+                // todo: if ngOnDestroy not there: create it =>
                 //
                 //member.body = ts.createBlock([
                 //
@@ -102,26 +103,12 @@ export const logTransformer = <T extends ts.Node>(context: ts.TransformationCont
 
             
           }
-        }
-
-        
-       } 
-       
-
-
+        }  
+      } 
+      
       return ts.visitEachChild(node, visit, context);
     }
-
 
     return ts.visitNode(rootNode, visit);
   };
 };
-
-function printTypescript(text: string) {
-  let sourceFile = ts.createSourceFile(
-    'afilename.ts', text,
-    ts.ScriptTarget.ES2015,
-    false,
-  );
-  console.log(JSON.stringify(sourceFile.statements, null, '\t'));
-}
