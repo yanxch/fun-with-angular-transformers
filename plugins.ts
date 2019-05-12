@@ -1,4 +1,4 @@
-import { logTransformer } from './log.transformer';
+import { unsubscribeTransformerFactory } from './transformer/unsubscribe.transformer';
 import { AngularCompilerPlugin } from '@ngtools/webpack';
 
 function findAngularCompilerPlugin(webpackCfg): AngularCompilerPlugin | null {
@@ -23,9 +23,10 @@ export default {
       return;
     }
 
-    addTransformerToAngularCompilerPlugin(angularCompilerPlugin, logTransformer);
+    addTransformerToAngularCompilerPlugin(angularCompilerPlugin, unsubscribeTransformerFactory(angularCompilerPlugin));
     return cfg;
   },
 
-  post() {}
+  post() {
+  }
 };
