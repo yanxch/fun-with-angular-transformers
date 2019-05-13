@@ -3,10 +3,31 @@ import * as ts from 'typescript';
 import {MockAotContext, MockCompilerHost} from './mocks';
 import {unsubscribeTransformerFactory} from './unsubscribe.transformer';
 
-
 describe('unsubscribe transformer', () => {
-  it('should create ngOnDestroy method', () => {
-    console.log(convert(`@Component({}) class Foo {}`));
+  it('should create ngOnDestroy method and subscriptions field', () => {
+    const enhanced = convert(`
+      @Component({
+        selector: 'test-selector'
+      }) 
+      class Foo {
+
+      }
+    `);
+    expect(enhanced).toMatchSnapshot();
+  });
+
+  it('should keep existing ngOnDestroy method', () => {
+    const enhanced = convert(`
+      @Component({
+        selector: 'test-selector'
+      }) 
+      class Foo {
+        ngOnDestroy() {
+          console.log('Keep me there plz!');
+        }
+      }
+    `);
+    expect(enhanced).toMatchSnapshot();
   });
 });
 

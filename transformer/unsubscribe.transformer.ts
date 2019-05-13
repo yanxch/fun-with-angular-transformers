@@ -16,6 +16,7 @@ const rxjsTypes = [
  *    - call expressions within a
  *    - expression statement only
  *    - that wraps another call expression where a property is called with subscribe 
+ *    - and the type is contained in rxjsTypes
  * 
  * Attention: If there is another method call to "subscribe" anywhere, that is not coming from RxJs, we are screwed!
  */

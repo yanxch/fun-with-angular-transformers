@@ -1,8 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import {interval, BehaviorSubject} from 'rxjs';
 import {HeroService} from './hero.service';
-
-declare const VERSION: string;
+import { map } from 'rxjs/operators';
 
 
 @Component({
@@ -10,18 +9,24 @@ declare const VERSION: string;
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
-export class AppComponent {
-  title = 'Version22: ' + VERSION;
+export class AppComponent implements OnDestroy {
+  title = 'Hello World';
+  showHistory = true;
 
   be2 = new BehaviorSubject(1);
 
   constructor(private heroService: HeroService) {
     this.heroService.mySubject.subscribe(v => console.log(v));
-    interval(1000).subscribe(val => console.log(val));
+  }
+
+  toggle() {
+    this.showHistory = !this.showHistory;
   }
 
   ngOnInit() {
-    this.be2.subscribe(val => console.log(val));
+    this.be2.pipe(
+      map(v => v)
+    ).subscribe(v => console.log(v));
   }
 
   ngOnDestroy() {
