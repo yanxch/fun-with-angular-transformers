@@ -29,6 +29,52 @@ describe('unsubscribe transformer', () => {
     `);
     expect(enhanced).toMatchSnapshot();
   });
+
+  it('should find nested subscriptions', () => {
+    const enhanced = convert(`
+      @Component({
+        selector: 'test-selector'
+      }) 
+      class Foo {
+
+        constructor(private heroService: HeroService) {
+          this.heroService.mySubject.subscribe(v => {
+            interval(1000).subscribe(val => console.log(val));
+          });
+        }
+
+        ngOnDestroy() {
+         
+        }
+      }
+    `);
+    expect(enhanced).toMatchSnapshot();
+  });
+
+  it('should not wrap subscriptions in a service', () => {
+    const enhanced = convert(`
+      @Injectable({
+        providedIn: 'root'
+      })
+      export class HeroService {
+      
+        count = 1;
+      
+        mySubject = new BehaviorSubject(this.count);
+      
+        constructor() {
+      
+          this.mySubject.subscribe(v => console.log(v));
+      
+        }
+      
+        increase() {
+          this.mySubject.next(this.count + 1);
+        }
+      }
+    `);
+    expect(enhanced).toMatchSnapshot();
+  });
 });
 
 function convert(source: string) {
@@ -49,6 +95,15 @@ function convert(source: string) {
       host);
   const moduleSourceFile = program.getSourceFile(fileName);
   const typeChecker = program.getTypeChecker();
+
+  // Workaround: TypeChecker does not work in test
+  typeChecker.getTypeAtLocation = function(node) { 
+    return {
+      symbol: {
+        name: 'Observable'
+      }
+    } as any;
+  }
 
   const transformers: ts.CustomTransformers = {
     before: [unsubscribeTransformerFactory({ typeChecker } as any)]

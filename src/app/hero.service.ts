@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import {Injectable} from '@angular/core';
 import {BehaviorSubject} from 'rxjs';
 
 @Injectable({
@@ -10,7 +10,11 @@ export class HeroService {
 
   mySubject = new BehaviorSubject(this.count);
 
-  constructor() {}
+  constructor() {
+
+    this.mySubject.subscribe(v => console.log(v));
+
+  }
 
   increase() {
     this.mySubject.next(this.count + 1);

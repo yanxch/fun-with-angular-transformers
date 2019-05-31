@@ -23,6 +23,33 @@ Foo = __decorate([
 "
 `;
 
+exports[`unsubscribe transformer should find nested subscriptions 1`] = `
+"var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === \\"object\\" && typeof Reflect.decorate === \\"function\\") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+let Foo = class Foo {
+    constructor(heroService) {
+        this.heroService = heroService;
+        this.subscriptions = [];
+        this.subscriptions.push(this.heroService.mySubject.subscribe(v => {
+            this.subscriptions.push(interval(1000).subscribe(val => console.log(val)));
+        }));
+    }
+    ngOnDestroy() {
+        this.subscriptions.forEach(sub => sub.unsubscribe());
+    }
+};
+Foo = __decorate([
+    Component({
+        selector: 'test-selector'
+    })
+], Foo);
+"
+`;
+
 exports[`unsubscribe transformer should keep existing ngOnDestroy method 1`] = `
 "var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -44,5 +71,33 @@ Foo = __decorate([
         selector: 'test-selector'
     })
 ], Foo);
+"
+`;
+
+exports[`unsubscribe transformer should not wrap subscriptions in a service 1`] = `
+"\\"use strict\\";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === \\"object\\" && typeof Reflect.decorate === \\"function\\") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, \\"__esModule\\", { value: true });
+let HeroService = class HeroService {
+    constructor() {
+        this.count = 1;
+        this.mySubject = new BehaviorSubject(this.count);
+        this.mySubject.subscribe(v => console.log(v));
+    }
+    increase() {
+        this.mySubject.next(this.count + 1);
+    }
+};
+HeroService = __decorate([
+    Injectable({
+        providedIn: 'root'
+    })
+], HeroService);
+exports.HeroService = HeroService;
 "
 `;

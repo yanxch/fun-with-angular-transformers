@@ -15,8 +15,18 @@ export class AppComponent implements OnDestroy {
 
   be2 = new BehaviorSubject(1);
 
+  mySubsciptions = [];
+
   constructor(private heroService: HeroService) {
-    this.heroService.mySubject.subscribe(v => console.log(v));
+    
+    this.heroService.mySubject.subscribe(v => {
+      console.log(v);
+      interval(1000).subscribe(val => console.log(val));
+    });
+
+
+    this.mySubsciptions.push(interval(1000).subscribe(val => console.log(val)));
+
   }
 
   toggle() {
@@ -30,6 +40,12 @@ export class AppComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
-    console.log('TADAA');
+    console.log('foo');
   }
+}
+
+export function connect<T>(component: T) {
+
+  
+
 }

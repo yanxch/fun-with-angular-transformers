@@ -9,27 +9,39 @@ const rxjsTypes = [
   'Observable',
   'BehaviorSubject',
   'Subject',
-  'ReplaySubject'
+  'ReplaySubject',
+  'AsyncSubject'
 ];
+
 /**
+ * 
+ * ExpressionStatement
+ *  -- CallExpression
+ *     -- PropertyAccessExpression
+ * 
+ * 
  * looking into:
  *    - call expressions within a
  *    - expression statement only
  *    - that wraps another call expression where a property is called with subscribe 
  *    - and the type is contained in rxjsTypes
  * 
- * Attention: If there is another method call to "subscribe" anywhere, that is not coming from RxJs, we are screwed!
  */
 function isSubscribeExpression(node: ts.Node, checker: ts.TypeChecker): node is ts.CallExpression {
-  return ts.isCallExpression(node)  
-    && node.parent && ts.isExpressionStatement(node.parent) 
-    && ts.isPropertyAccessExpression(node.expression)
-    && node.expression.name.text === 'subscribe'
-    && rxjsTypes.includes(getTypeAsString(node, checker));
+  // ts.isBinaryExpression
+  // ts.isCallExpression
+  // ts.isClassDeclaration
+  // ts.is
+
+  return ts.isCallExpression(node) &&
+    node.parent && ts.isExpressionStatement(node.parent) &&
+    ts.isPropertyAccessExpression(node.expression) &&
+    node.expression.name.text === 'subscribe' &&
+    rxjsTypes.includes(getTypeAsString(node, checker));
 } 
 
 function getTypeAsString(node: ts.CallExpression, checker: ts.TypeChecker) {
-  const type = checker.getTypeAtLocation((node.expression as ts.PropertyAccessExpression | ts.CallExpression).expression);
+  const type: ts.Type = checker.getTypeAtLocation((node.expression as ts.PropertyAccessExpression | ts.CallExpression).expression);
   console.log('TYPE: ', type.symbol.name);
   return type.symbol.name;
 }
@@ -38,22 +50,19 @@ function getTypeAsString(node: ts.CallExpression, checker: ts.TypeChecker) {
  * Takes a subscibe call expression and wraps it with:
  * this.subscriptions.push(node)
  */
-function wrapSubscribe(node: ts.CallExpression) {
-  
-  // console.log(node.expression);
-
+function wrapSubscribe(node: ts.CallExpression, visit, context) {
   return ts.createCall(
     ts.createPropertyAccess(
       ts.createPropertyAccess(ts.createThis(), 'subscriptions'),
       'push'
     ),
     undefined,
-    [node]
+    [ts.visitEachChild(node, visit, context)]
   );
 }
 
-function logClassFound(node: ts.ClassDeclaration) {
-  console.log('Found class: ', node.name.escapedText);
+function logComponentFound(node: ts.ClassDeclaration) {
+  console.log('Found component: ', node.name.escapedText);
 }
 
 function isComponent(node: ts.ClassDeclaration) {
@@ -138,34 +147,46 @@ export function unsubscribeTransformerFactory(acp: AngularCompilerPlugin) {
     const checker = acp.typeChecker;
 
     return (rootNode: ts.SourceFile) => {
-   
+
+
+      let withinComponent = false;
+
       function visit(node: ts.Node): ts.Node {
-  
-        if (isSubscribeExpression(node, checker)) {
-          return wrapSubscribe(node);
+
+        if (isSubscribeExpression(node, checker) && withinComponent) {
+          return wrapSubscribe(node, visit, context);
         }
         
-        if (ts.isClassDeclaration(node)) {
-          logClassFound(node);
-  
-          if (isComponent(node)) {
-            // 1.
-            node.members = ts.createNodeArray([...node.members, createSubscriptionsArray()]);
-  
-            // 2.
-            if (!hasNgOnDestroyMethod(node)) {
-              node.members = ts.createNodeArray([...node.members, createNgOnDestroyMethod()]);
-            }
-  
-            // 3.
-            const ngOnDestroyMethod = getNgOnDestroyMethod(node);
-            ngOnDestroyMethod.body.statements = ts.createNodeArray([...ngOnDestroyMethod.body.statements, createUnsubscribeStatement()]);
-          }  
+        if (ts.isClassDeclaration(node) && isComponent(node)) {
+          console.log('-------S------');
+          logComponentFound(node);
+          console.log(acp.getDependencies(rootNode.fileName));
+          console.log('-------E-----');
+
+          withinComponent = true;
+
+          // 1. Create the subscriptions array
+          node.members = ts.createNodeArray([...node.members, createSubscriptionsArray()]);
+
+          // 2. Create the ngOnDestroyMethod if not there 
+          if (!hasNgOnDestroyMethod(node)) {
+            node.members = ts.createNodeArray([...node.members, createNgOnDestroyMethod()]);
+          }
+
+          // 3. Create the unsubscribe loop in the body of the ngOnDestroyMethod
+          const ngOnDestroyMethod = getNgOnDestroyMethod(node);
+          ngOnDestroyMethod.body.statements = ts.createNodeArray([...ngOnDestroyMethod.body.statements, createUnsubscribeStatement()]);
+          
+          const children = ts.visitEachChild(node, visit, context);
+
+          withinComponent = false;
+
+          return children;
         } 
         
         return ts.visitEachChild(node, visit, context);
       }
-  
+
       return ts.visitNode(rootNode, visit);
     };
   };
