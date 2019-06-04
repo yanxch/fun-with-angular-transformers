@@ -1,0 +1,17 @@
+import { Component, OnInit } from '@angular/core';
+
+@Component({
+  selector: 'app-login',
+  templateUrl: './login.component.html',
+  styleUrls: ['./login.component.scss']
+})
+export class LoginComponent implements OnInit {
+
+  constructor() { }
+
+  ngOnInit() {
+
+    console.log('I have no subscription in meee. Plz dont touch me');
+  }
+
+}

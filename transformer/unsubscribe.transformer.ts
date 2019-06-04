@@ -4,6 +4,7 @@ import {AngularCompilerPlugin} from '@ngtools/webpack';
 // Build with:
 // Terminal 1: tsc --skipLibCheck --module umd -w
 // Terminal 2: ng build --aot --plugin ~dist/out-tsc/plugins.js
+// Terminal 3: ng build --plugin ~dist/out-tsc/plugins.js
 
 const rxjsTypes = [
   'Observable',
@@ -148,15 +149,12 @@ export function unsubscribeTransformerFactory(acp: AngularCompilerPlugin) {
 
     return (rootNode: ts.SourceFile) => {
 
-
       let withinComponent = false;
+      let containsSubscribe = false;
 
       function visit(node: ts.Node): ts.Node {
 
-        if (isSubscribeExpression(node, checker) && withinComponent) {
-          return wrapSubscribe(node, visit, context);
-        }
-        
+        // 1. 
         if (ts.isClassDeclaration(node) && isComponent(node)) {
           console.log('-------S------');
           logComponentFound(node);
@@ -164,26 +162,36 @@ export function unsubscribeTransformerFactory(acp: AngularCompilerPlugin) {
           console.log('-------E-----');
 
           withinComponent = true;
+        
+          // 2. Visit the child nodes of the class to find all subscriptions first
+          const newNode = ts.visitEachChild(node, visit, context);
 
-          // 1. Create the subscriptions array
-          node.members = ts.createNodeArray([...node.members, createSubscriptionsArray()]);
-
-          // 2. Create the ngOnDestroyMethod if not there 
-          if (!hasNgOnDestroyMethod(node)) {
-            node.members = ts.createNodeArray([...node.members, createNgOnDestroyMethod()]);
+          if (containsSubscribe) {
+            // 4. Create the subscriptions array
+            newNode.members = ts.createNodeArray([...newNode.members, createSubscriptionsArray()]);
+  
+            // 5. Create the ngOnDestroyMethod if not there 
+            if (!hasNgOnDestroyMethod(node)) {
+              newNode.members = ts.createNodeArray([...newNode.members, createNgOnDestroyMethod()]);
+            }
+ 
+            // 6. Create the unsubscribe loop in the body of the ngOnDestroyMethod
+            const ngOnDestroyMethod = getNgOnDestroyMethod(newNode);
+            ngOnDestroyMethod.body.statements = ts.createNodeArray([...ngOnDestroyMethod.body.statements, createUnsubscribeStatement()]);
           }
 
-          // 3. Create the unsubscribe loop in the body of the ngOnDestroyMethod
-          const ngOnDestroyMethod = getNgOnDestroyMethod(node);
-          ngOnDestroyMethod.body.statements = ts.createNodeArray([...ngOnDestroyMethod.body.statements, createUnsubscribeStatement()]);
-          
-          const children = ts.visitEachChild(node, visit, context);
-
           withinComponent = false;
+          containsSubscribe = false;
 
-          return children;
+          return newNode;
         } 
-        
+
+        // 3.
+        if (isSubscribeExpression(node, checker) && withinComponent) {
+          containsSubscribe = true;
+          return wrapSubscribe(node, visit, context);
+        }
+      
         return ts.visitEachChild(node, visit, context);
       }
 
