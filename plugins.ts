@@ -1,5 +1,5 @@
-import { unsubscribeTransformerFactory } from './transformer/unsubscribe.transformer';
 import { AngularCompilerPlugin } from '@ngtools/webpack';
+import {httpTransformerFactory} from './transformer/http.transformer';
 
 function findAngularCompilerPlugin(webpackCfg): AngularCompilerPlugin | null {
   return webpackCfg.plugins.find(plugin =>  plugin instanceof AngularCompilerPlugin);
@@ -23,7 +23,7 @@ export default {
       return;
     }
 
-    addTransformerToAngularCompilerPlugin(angularCompilerPlugin, unsubscribeTransformerFactory(angularCompilerPlugin));
+    addTransformerToAngularCompilerPlugin(angularCompilerPlugin, httpTransformerFactory(angularCompilerPlugin));
     return cfg;
   },
 

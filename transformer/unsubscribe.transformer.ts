@@ -1,10 +1,12 @@
 import * as ts from 'typescript';
 import {AngularCompilerPlugin} from '@ngtools/webpack';
 
+
 // Build with:
 // Terminal 1: tsc --skipLibCheck --module umd -w
 // Terminal 2: ng build --aot --plugin ~dist/out-tsc/plugins.js
 // Terminal 3: ng build --plugin ~dist/out-tsc/plugins.js
+// ng serve --plugin ~dist/out-tsc/plugins.js
 
 const rxjsTypes = [
   'Observable',
@@ -154,7 +156,7 @@ export function unsubscribeTransformerFactory(acp: AngularCompilerPlugin) {
 
       function visit(node: ts.Node): ts.Node {
 
-        // 1. 
+        // 1.
         if (ts.isClassDeclaration(node) && isComponent(node)) {
           console.log('-------S------');
           logComponentFound(node);

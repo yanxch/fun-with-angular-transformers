@@ -18,15 +18,7 @@ export class AppComponent implements OnDestroy {
   mySubsciptions = [];
 
   constructor(private heroService: HeroService) {
-    
-    this.heroService.mySubject.subscribe(v => {
-      console.log(v);
-      interval(1000).subscribe(val => console.log(val));
-    });
-
-
-    this.mySubsciptions.push(interval(1000).subscribe(val => console.log(val)));
-
+    this.heroService.readCommitsByUsername('yanxch');
   }
 
   toggle() {
@@ -44,8 +36,3 @@ export class AppComponent implements OnDestroy {
   }
 }
 
-export function connect<T>(component: T) {
-
-  
-
-}
